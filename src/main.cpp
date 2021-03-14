@@ -148,6 +148,7 @@ const unsigned char *Ico_table[] = {
 };
 
 const byte Menu_table[] = {11, 6, 4, 4, 2, 2, 2, 2, 3, 3}; //菜单 标签 温控 定时 控制方式 首页 蜂鸣器 标签删除确认界面 语言菜单 翻转 显示
+
 byte MenuLevel = 0; //菜单层级
 
 /*////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,6 +210,8 @@ const char *const EN_table[] PROGMEM = {EN_0, EN_1, EN_2, EN_3, EN_4, EN_5, EN_6
   print(num,end='')
   print(",",end="")
 */
+
+#ifdef FIRST_LANG
 /*
     中文语言库 CHINESE
 
@@ -302,6 +305,9 @@ const unsigned char *CN_table[] = {
   t_CN_CN, t_CN_EN, t_CN_JP, //8
   t5_3, t4f, t_save, //9
 };
+#endif
+
+#ifdef THIRD_LANG
 /*
    日语 Japanese
 */
@@ -870,6 +876,9 @@ const char JP_40[] PROGMEM = { 0xf2, 0x1f, 0x20, }; //密码
 
 const char *const JP_table[] = {JP_0, JP_1, JP_2, JP_3, JP_4, JP_5, JP_6, JP_40, JP_7, JP_38, JP_8, JP_9, JP_10, JP_11, JP_12, JP_13, JP_14, JP_15, JP_16, JP_17, JP_18, JP_19, JP_20, JP_21, JP_22, JP_23, JP_24, JP_25, JP_26, JP_27, JP_28, JP_29, JP_30, JP_31, JP_32, JP_39, JP_35, JP_36, JP_37,};
 const char JP_Length_table[] PROGMEM = {6, 5, 5, 7, 6, 4, 9, 3, 3 , 5, 4, 9, 10, 8, 3, 3, 3, 6, 3, 5, 3, 3, 5, 5, 3, 6, 4, 4, 5, 5, 4, 5, 4, 4, 3, 4,  9, 5, 3,};
+#endif
+
+#define ROTARY_REVERSE
 
 bool lastbutton;
 #include <Arduboy2.h>  //注意 这里使用被阉割的图形库，只有绘图功能，并非通用的版本
@@ -886,7 +895,7 @@ Arduboy2 arduboy;
 #define VERSION       "v1.7+"
 
 // Type of rotary encoder
-#define ROTARY_TYPE   1         // 0: 2 increments/step; 1: 4 increments/step
+#define ROTARY_TYPE   0         // 0: 2 increments/step; 1: 4 increments/step
 
 // Pins
 #define SENSOR_PIN    A0        // temperature sense
@@ -1321,7 +1330,11 @@ void beep() {
 void setRotary(int rmin, int rmax, int rstep, int rvalue) {
   countMin  = rmin << ROTARY_TYPE;
   countMax  = rmax << ROTARY_TYPE;
+#ifndef ROTARY_REVERSE
   countStep = rstep;
+#else
+  countStep = -rstep;
+#endif
   count     = rvalue << ROTARY_TYPE;
 }
 
@@ -1349,6 +1362,12 @@ void getEEPROM() {
     CurrentTip  =  EEPROM.read(13);
     NumberOfTips = EEPROM.read(14);
     LANG = EEPROM.read(15);
+#ifndef FIRST_LANG
+        if (LANG == 0) LANG = 1;
+#endif
+#ifndef THIRD_LANG
+        if (LANG == 2) LANG = 1;
+#endif
     FlipState = EEPROM.read(16);
     UnderVoltage = EEPROM.read(17);
     Password = (EEPROM.read(18) << 8) | EEPROM.read(19);
@@ -1452,7 +1471,9 @@ void MainScreen() {
       arduboy.setCursor(53, 1);
       arduboy.setTextSize(2);
       switch (LANG) {
+#ifdef FIRST_LANG
         case 0: arduboy.drawSlowXYBitmap(80, 1, S_table[SysState], 28, 14, 0); break;  //中文 Chinese
+#endif
         default: //英文 English
           switch (SysState) {
             case 1: arduboy.print(F("OFF")); break;
@@ -1550,7 +1571,16 @@ void SetupScreen() {
       case 5:   MenuLevel = 6; beepEnable = MenuScreen(beepEnable); break;
       case 6:   UnderVoltageSet(); break;
       case 7:   PasswordSet(); break;
-      case 8:   MenuLevel = 8; LANG = MenuScreen(LANG); break;
+      case 8:   
+        MenuLevel = 8; 
+        LANG = MenuScreen(LANG); 
+#ifndef FIRST_LANG
+        if (LANG == 0) LANG = 1;
+#endif
+#ifndef THIRD_LANG
+        if (LANG == 2) LANG = 1;
+#endif
+        break;
       case 9:   QRcodeScreen(); break;
       default:  repeat = false; break;
     }
@@ -1682,14 +1712,22 @@ void DrawApp(int x, byte appID) {
 //显示APP对应的文本
 void DrawAppText(byte appID) {
 //  arduboy.setCursor(0, 55); arduboy.print(appID);
-  if (LANG == 0) arduboy.drawSlowXYBitmap(48, 48, CN_table[appID], 36, 16, 1); 
-  else if (LANG == 2) {
-    // drawText(48, 52, JP_table[appID], pgm_read_byte(&(JP_Length_table[appID]))); ??
+  switch (LANG) {
+#ifdef FIRST_LANG
+  case 0:
+    arduboy.drawSlowXYBitmap(48, 48, CN_table[appID], 36, 16, 1);
+    break;
+#endif
+#ifdef THIRD_LANG
+  case 2:
     drawText(48, 52, (const uint8_t *)(JP_table[appID]), pgm_read_byte(&(JP_Length_table[appID])));
-  } else {
+    break;
+#endif
+  default:
     arduboy.setCursor(48, 52);
     arduboy.setTextSize(1);
     Print_EN(appID);
+    break;
   }
 }
 void DrawUIFrame(int x, int y, bool color) {
@@ -2108,6 +2146,8 @@ void drawSlowXYBitmapResize(int x, int y, const uint8_t *bitmap, uint8_t w, uint
     }
   }
 }
+
+#ifdef THIRD_LANG
 /*
   8x8 dot Japanese font for Arduboy
 
@@ -2191,3 +2231,4 @@ void drawText(uint8_t x, uint8_t y, const uint8_t *mes, uint8_t cnt)
     }
   }
 }
+#endif
