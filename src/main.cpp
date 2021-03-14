@@ -875,7 +875,10 @@ bool lastbutton;
 #include <Arduboy2.h>  //注意 这里使用被阉割的图形库，只有绘图功能，并非通用的版本
 Arduboy2 arduboy;
 
+// #define EN_EEPROM
+#ifdef EN_EEPROM
 #include <EEPROM.h>
+#endif
 #include <PID_v1.h>
 #include <avr/sleep.h>
 
@@ -1331,6 +1334,7 @@ int getRotary() {
 
 // reads user settings from EEPROM; if EEPROM values are invalid, write defaults
 void getEEPROM() {
+#ifdef EN_EEPROM
   uint16_t identifier = (EEPROM.read(0) << 8) | EEPROM.read(1);
   if (identifier == EEPROM_IDENT) {
     DefaultTemp = (EEPROM.read(2) << 8) | EEPROM.read(3);
@@ -1364,11 +1368,13 @@ void getEEPROM() {
     EEPROM.update(0, EEPROM_IDENT >> 8); EEPROM.update(1, EEPROM_IDENT & 0xFF);
     updateEEPROM();
   }
+#endif
 }
 
 
 // writes user settings to EEPROM using updade function to minimize write cycles
 void updateEEPROM() {
+#ifdef EN_EEPROM
   EEPROM.update( 2, DefaultTemp >> 8);
   EEPROM.update( 3, DefaultTemp & 0xFF);
   EEPROM.update( 4, SleepTemp >> 8);
@@ -1415,6 +1421,7 @@ void HelpMeSerialer() {
     Serial.println(String("A ->") + a);
     Serial.println(String("B ->") + b);
   */
+#endif
 }
 // draws the main screen
 void MainScreen() {
