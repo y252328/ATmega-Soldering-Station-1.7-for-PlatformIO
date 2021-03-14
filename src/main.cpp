@@ -892,7 +892,7 @@ Arduboy2 arduboy;
 #include <avr/sleep.h>
 
 // Firmware version
-#define VERSION       "v1.7+"
+#define VERSION       "v1.7+X"
 
 // Type of rotary encoder
 #define ROTARY_TYPE   0         // 0: 2 increments/step; 1: 4 increments/step
@@ -909,8 +909,8 @@ Arduboy2 arduboy;
 
 // Default temperature control values (recommended soldering temperature: 300-380°C)
 #define ChipTempCalVal 335  //芯片内部温度读取校准值 -->可以根据实际情况修改，不同机器情况不同，通常误差在10°C内
-#define TEMP_MIN      150       // min selectable temperature
-#define TEMP_MAX      400       // max selectable temperature
+#define TEMP_MIN      10       // min selectable temperature
+#define TEMP_MAX      480       // max selectable temperature
 #define TEMP_DEFAULT  320       // default start setpoint
 #define TEMP_SLEEP    150       // temperature in sleep mode
 #define TEMP_BOOST     60       // temperature increase in boost mode
@@ -925,9 +925,9 @@ Arduboy2 arduboy;
 #define TIPNAMELENGTH 6         // max length of tip names (including termination)
 #define TIPNAME       "BC1.5"   // default tip name
 
-// Default timer values (0 = disabled)
-#define TIME2SLEEP     5        // time to enter sleep mode in minutes
-#define TIME2OFF      15        // time to shut off heater in minutes
+// Default timer values(0 = disabled)
+#define TIME2SLEEP    30        // time to enter sleep mode in 0.1 minutes
+#define TIME2OFF      150        // time to shut off heater in 0.1 minutes
 #define TIMEOFBOOST   40        // time to stay in boost mode in seconds
 
 // Control values
@@ -952,8 +952,8 @@ double consKp = 11, consKi = 3, consKd = 5;
 uint16_t  DefaultTemp = TEMP_DEFAULT;
 uint16_t  SleepTemp   = TEMP_SLEEP;
 uint8_t   BoostTemp   = TEMP_BOOST;
-uint8_t   time2sleep  = TIME2SLEEP;
-uint8_t   time2off    = TIME2OFF;
+uint8_t   time2sleep  = TIME2SLEEP; // unit: 0.1 Min
+uint8_t   time2off    = TIME2OFF;   // unit: 0.1 Min
 uint8_t   timeOfBoost = TIMEOFBOOST;
 uint8_t   MainScrType = MAINSCREEN;
 bool      PIDenable   = PID_ENABLE;
@@ -996,7 +996,7 @@ bool      FlipState = false;
 uint32_t  sleepmillis;
 uint32_t  boostmillis;
 uint32_t  buttonmillis;
-uint8_t   goneMinutes;
+uint16_t  goneDeciMinutes;
 uint8_t   goneSeconds;
 uint8_t   SensorCounter = 255;
 //串口助手
@@ -1216,12 +1216,12 @@ void SLEEPCheck() {
   }
 
   // check time passed since the handle was moved
-  goneMinutes = (millis() - sleepmillis) / 60000;
-  if ( (!inSleepMode) && (time2sleep > 0) && (goneMinutes >= time2sleep) ) {
+  goneDeciMinutes = (millis() - sleepmillis) / 6000;
+  if ( (!inSleepMode) && (time2sleep > 0) && (goneDeciMinutes >= time2sleep) ) {
     inSleepMode = true;
     beep();
   }
-  if ( (!inOffMode)   && (time2off   > 0) && (goneMinutes >= time2off  ) ) {
+  if ( (!inOffMode)   && (time2off   > 0) && (goneDeciMinutes >= time2off  ) ) {
     inOffMode   = true;
     beep();
   }
@@ -1442,6 +1442,7 @@ void HelpMeSerialer() {
   */
 #endif
 }
+
 // draws the main screen
 void MainScreen() {
   if (!(arduboy.nextFrame())) //帧率锁
