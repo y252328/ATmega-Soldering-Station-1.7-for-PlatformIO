@@ -892,7 +892,7 @@ Arduboy2 arduboy;
 #include <avr/sleep.h>
 
 // Firmware version
-#define VERSION       "v1.7+X"
+#define VERSION       "v1.7+1"
 
 // Type of rotary encoder
 #define ROTARY_TYPE   0         // 0: 2 increments/step; 1: 4 increments/step
@@ -943,6 +943,8 @@ Arduboy2 arduboy;
 //Beep
 #define SetBeepCoolTime 200
 unsigned long BeepCoolTime;
+
+constexpr bool screensaver_en = false;
 
 // Define the aggressive and conservative PID tuning parameters
 double aggKp = 11, aggKi = 0.5, aggKd = 1;
@@ -1087,7 +1089,7 @@ void updateEEPROM();
 void setup() {
   Serial.begin(115200);
   arduboy.begin();
-  arduboy.setFrameRate(30);
+  arduboy.setFrameRate(25);
 
   //Serial.begin(115200);
   // set the pin modes
@@ -1445,20 +1447,18 @@ void HelpMeSerialer() {
 
 // draws the main screen
 void MainScreen() {
-  if (!(arduboy.nextFrame())) //帧率锁
-    return;
-  //状态
-  byte SysState;
+  if (!(arduboy.nextFrame())) return;//帧率锁
+  byte SysState; //状态
+
   if (ShowTemp > 500) SysState = 0;
-  else if (inOffMode) {
-    SysState = 1;
-    DrawIntensiveComputing();
-  } else if (inSleepMode) SysState = 2;
+  else if (inOffMode) { SysState = 1; if(screensaver_en) DrawIntensiveComputing(); } 
+  else if (inSleepMode) SysState = 2;
   else if (inBoostMode) SysState = 3;
   else if (isWorky) SysState = 4;
   else if (Output < 180) SysState = 5;
   else SysState = 6;
-  if (SysState != 1) {
+
+  if (SysState != 1 || !screensaver_en) {
     if (MainScrType) {
       arduboy.clear();
       //详细信息页
